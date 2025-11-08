@@ -12,10 +12,6 @@ import { UpdateEquipoCapitanDto } from './dto/update-equipos-capitan.dto';
 
 @Injectable()
 export class EquiposService {
-  actualizarEquipo(id: string, actualizarEquipoDto: UpdateEquipoDto) {
-    throw new Error('Method not implemented.');
-  }
-
   private readonly logger = new Logger('EquiposService');
 
   constructor(
@@ -29,35 +25,32 @@ export class EquiposService {
   ){}
 
 async create(createEquipoDto: CreateEquipoDto, usuario: User) {
-  const { nombre, idTorneo } = createEquipoDto;
+  const { nombre, jugadores = [] } = createEquipoDto;
 
-  //  Verificar que el usuario no tenga ya un equipo en ese torneo
+  // Verificar que no exista un equipo con el mismo nombre
   const equipoExistente = await this.equipoRepository.findOne({
-    where: {
-      capitan: { id: usuario.id },
-      torneo: { idTorneo: idTorneo },
-    },
-    relations: ['torneo', 'capitan'],
+    where: { nombre },
+    relations: ['capitan'],
   });
 
   if (equipoExistente) {
-    throw new Error('Ya eres capitán de un equipo en este torneo.');
+    throw new BadRequestException('Ya existe un equipo con ese nombre.');
   }
 
-  //  Obtener el torneo
-  const torneo = await this.torneoRepository.findOne({ where: { idTorneo } });
-  if (!torneo) throw new Error('Torneo no encontrado.');
+  // Insertar al inicio del arreglo al capitán
+  const jugadoresFinal = [usuario.nombre, ...jugadores.filter(j => j !== usuario.nombre)];
 
-  // Crear el equipo
+  // Crear equipo
   const equipo = this.equipoRepository.create({
     nombre,
+    jugadores: jugadoresFinal,
+    noIntegrantes: jugadoresFinal.length,
     capitan: usuario,
-    torneo,
   });
 
   await this.equipoRepository.save(equipo);
 
-  //  Actualizar rol del usuario a 'capitan' si aún no lo tiene
+  // Actualizar rol del usuario a 'capitan' si aún no lo tiene
   if (!usuario.roles.includes('capitan')) {
     usuario.roles.push('capitan');
     await this.userRepository.save(usuario);
@@ -67,31 +60,64 @@ async create(createEquipoDto: CreateEquipoDto, usuario: User) {
 }
 
 
-  findAll() {
-    return `This action returns all equipos`;
-  }
 
-  async findOne(term: string) {
+async uploadLogo(equipoId: string, file: Express.Multer.File) {
+  const equipo = await this.equipoRepository.findOneBy({ id: equipoId });
+  if (!equipo) throw new NotFoundException('Equipo no encontrado');
 
-    let equipo: Equipo | null
+  equipo.logoUrl = file.filename; // Guardamos solo el nombre del archivo
+  await this.equipoRepository.save(equipo);
 
-    if(isUUID(term)){
-      equipo = await this.equipoRepository.findOneBy({id: term})
+  return {
+    ...equipo,
+    logoUrl: `${process.env.API_URL ?? 'http://localhost:3000'}/uploads/equipos/${file.filename}`,
+  };
+}
 
-    }else{
-      const queryBuilder = this.equipoRepository.createQueryBuilder();
-      equipo = await queryBuilder.where(`UPPER (nombre) =:nombre`,{
-        nombre: term.toUpperCase(),
+async findAll() {
+  try {
+    const equipos = await this.equipoRepository
+      .createQueryBuilder('equipo')
+      .leftJoinAndSelect('equipo.capitan', 'capitan')
+      .leftJoinAndSelect('equipo.inscripciones', 'inscripcion')
+      .leftJoinAndSelect('inscripcion.torneo', 'torneo')
+      .orderBy('equipo.nombre', 'ASC')
+      .getMany();
 
-      }).getOne()
+    if (!equipos.length) {
+      this.logger.warn('No se encontraron equipos en la base de datos.');
     }
 
-    if (!equipo) {
-      throw new NotFoundException(`equipo con ${term} no se encontro`)
-    }
-    return equipo
-
+    return equipos;
+  } catch (error) {
+    this.logger.error('Error al obtener los equipos', error.stack);
+    throw new InternalServerErrorException('No se pudieron obtener los equipos.');
   }
+}
+
+
+async findOne(term: string) {
+  let query = this.equipoRepository
+    .createQueryBuilder('equipo')
+    .leftJoinAndSelect('equipo.capitan', 'capitan')
+    .leftJoinAndSelect('equipo.inscripciones', 'inscripcion')
+    .leftJoinAndSelect('inscripcion.torneo', 'torneo');
+
+  if (isUUID(term)) {
+    query = query.where('equipo.id = :id', { id: term });
+  } else {
+    query = query.where('UPPER(equipo.nombre) = :nombre', { nombre: term.toUpperCase() });
+  }
+
+  const equipo = await query.getOne();
+
+  if (!equipo) {
+    throw new NotFoundException(`Equipo con ${term} no se encontró`);
+  }
+
+  return equipo;
+}
+
 
   async update(id: string, updateEquipoDto: UpdateEquipoDto) {
 
@@ -100,7 +126,7 @@ async create(createEquipoDto: CreateEquipoDto, usuario: User) {
       ...updateEquipoDto
     });
 
-    if (!equipo) throw new NotFoundException(`Equipo con el di ${id} no fue encontrado`)  
+    if (!equipo) throw new NotFoundException(`Equipo con el id ${id} no fue encontrado`)  
 
     try {
       
@@ -115,39 +141,64 @@ async create(createEquipoDto: CreateEquipoDto, usuario: User) {
 
   }
 
-async updatePorCapitan(id: string, updateEquipoDto: UpdateEquipoCapitanDto, usuario: User) {
-
+async updatePorCapitan(
+  id: string,
+  updateEquipoDto: UpdateEquipoCapitanDto,
+  usuario: User,
+  logoFile?: Express.Multer.File
+) {
   //  Cargar el equipo y verificar que el usuario es el capitán
   const equipo = await this.equipoRepository.findOne({
     where: { id },
     relations: ['capitan'],
   });
 
-  if (!equipo) throw new NotFoundException(`Equipo con el id ${id} no fue encontrado`);
+  if (!equipo) throw new NotFoundException(`Equipo con id ${id} no fue encontrado`);
+  if (equipo.capitan.id !== usuario.id) throw new ForbiddenException('No eres el capitán de este equipo');
 
-  if (equipo.capitan.id !== usuario.id) {
-    throw new ForbiddenException('No eres el capitán de este equipo');
+  // Actualizar nombre si viene
+  if (updateEquipoDto.nombre) equipo.nombre = updateEquipoDto.nombre;
+
+  // Actualizar jugadores si viene el arreglo
+  if (updateEquipoDto.jugadores) {
+    // Asegurarse de que el capitán esté en la primera posición
+    const jugadoresSinCapitan = updateEquipoDto.jugadores.filter(
+      (j) => j !== equipo.capitan.nombre
+    );
+    equipo.jugadores = [equipo.capitan.nombre, ...jugadoresSinCapitan];
   }
 
-  //  Preload solo los campos permitidos
-  const datosActualizables = {
-    id,
-    nombre: updateEquipoDto.nombre ?? equipo.nombre,
-    noIntegrantes: updateEquipoDto.noIntegrantes ?? equipo.noIntegrantes,
-  };
+  // Actualizar logo si se envía archivo
+  if (logoFile) {
+    // Eliminar logo anterior si existe
+    if (equipo.logoUrl) {
+      const fs = require('fs');
+      const path = require('path');
+      const logoPath = path.join('./uploads/equipos', equipo.logoUrl.split('/').pop());
+      if (fs.existsSync(logoPath)) fs.unlinkSync(logoPath);
+    }
 
-  const equipoActualizado = await this.equipoRepository.preload(datosActualizables);
+    equipo.logoUrl = logoFile.filename;
+  }
 
-  if (!equipoActualizado) throw new NotFoundException(`No se pudo actualizar el equipo`);
+  // Recalcular número de integrantes
+  equipo.noIntegrantes = equipo.jugadores.length;
 
   try {
-    await this.equipoRepository.save(equipoActualizado);
+    await this.equipoRepository.save(equipo);
   } catch (error) {
     this.controlDbErrores(error);
   }
 
-  return equipoActualizado;
+  // Retornar equipo con URL pública si se actualizó logo
+  return {
+    ...equipo,
+    logoUrl: equipo.logoUrl
+      ? `${process.env.API_URL ?? 'http://localhost:3000'}/uploads/equipos/${equipo.logoUrl}`
+      : null,
+  };
 }
+
 
 
   async remove(id: string) {
@@ -166,6 +217,21 @@ async updatePorCapitan(id: string, updateEquipoDto: UpdateEquipoCapitanDto, usua
     this.logger.error(error)
     
     throw new InternalServerErrorException('AYUDA!')    
+
+  }
+
+    async deleteAllEquipos() {
+    const query = this.equipoRepository.createQueryBuilder('Equipo');
+
+    try {
+      return await query
+        .delete()
+        .where({})
+        .execute();
+
+    } catch (error) {
+      this.controlDbErrores(error);
+    }
 
   }
 

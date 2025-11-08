@@ -7,10 +7,10 @@ import { Repository } from 'typeorm';
 import { Partido } from 'src/partidos/entities/partido.entity';
 import { Equipo } from 'src/equipos/entities/equipo.entity';
 import { Jornada } from 'src/jornada/entities/jornada.entity';
+import { EstadoInscripcion, Inscripcion } from 'src/inscripcion/entities/inscripcion.entity';
 
 @Injectable()
 export class TorneosService {
-
   private readonly logger = new Logger('TorneosService');
 
   constructor(
@@ -23,6 +23,8 @@ export class TorneosService {
     private readonly equipoRepository: Repository<Equipo>,
     @InjectRepository(Jornada)
     private readonly jornadaRepository: Repository<Jornada>,
+    @InjectRepository(Inscripcion)
+    private readonly inscripcionRepository: Repository<Inscripcion>,
 
   ){}
 
@@ -40,107 +42,156 @@ export class TorneosService {
       }  
   }
 
-async generarPartidosAleatorios(idTorneo: string) {
-  // Obtener el torneo
+  async findAll() {
+  try {
+    const torneos = await this.torneoRepository
+      .createQueryBuilder('torneo')
+      .leftJoinAndSelect('torneo.jornadas', 'jornada')
+      .leftJoinAndSelect('jornada.partidos', 'partido')
+      .leftJoinAndSelect('torneo.inscripciones', 'inscripcion')
+      .orderBy('torneo.nombreTorneo', 'ASC')
+      .getMany();
+
+    if (!torneos.length) {
+      this.logger.warn('No se encontraron torneos en la base de datos.');
+    }
+
+    return torneos;
+  } catch (error) {
+    this.logger.error('Error al obtener los torneos', error.stack);
+    throw new InternalServerErrorException('No se pudieron obtener los torneos.');
+  }
+}
+
+  async findOne(id: string) {
+  try {
+    const torneo = await this.torneoRepository
+      .createQueryBuilder('torneo')
+      .leftJoinAndSelect('torneo.jornadas', 'jornada')
+      .leftJoinAndSelect('jornada.partidos', 'partido')
+      .leftJoinAndSelect('torneo.inscripciones', 'inscripcion')
+      .where('torneo.idTorneo = :id', { id })
+      .getOne();
+
+    if (!torneo) throw new NotFoundException(`Torneo con id ${id} no encontrado`);
+
+    return torneo;
+  } catch (error) {
+    this.logger.error('Error al obtener el torneo', error.stack);
+    throw new InternalServerErrorException('No se pudo obtener el torneo.');
+  }
+}
+
+  async update(id: string, updateTorneoDto: UpdateTorneoDto) {
+  // Cargar el torneo existente
+  const torneo = await this.torneoRepository.preload({
+    idTorneo: id,
+    ...updateTorneoDto,
+  });
+
+  if (!torneo) {
+    throw new NotFoundException(`Torneo con id ${id} no encontrado`);
+  }
+
+  try {
+    return await this.torneoRepository.save(torneo);
+  } catch (error) {
+    this.controlDbErrores(error);
+  }
+}
+
+async obtenerLeaderboard(idTorneo: string) {
+  // 1️⃣ Verificar que el torneo existe
   const torneo = await this.torneoRepository.findOne({
     where: { idTorneo },
-    relations: ['jornadas', 'partidos'],
-  });
-  if (!torneo) throw new Error('No se encontró el torneo.');
-
-  // Obtener los equipos
-  const equipos = await this.equipoRepository.find();
-  if (equipos.length < 2) throw new Error('No hay suficientes equipos.');
-
-  // Calcular número de jornada
-  const numeroJornada = (torneo.jornadas?.length || 0) + 1;
-
-  //  Mezclar equipos y crear los partidos
-  const equiposValidos = equipos.length % 2 === 0 ? equipos : equipos.slice(0, -1);
-  for (let i = equiposValidos.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [equiposValidos[i], equiposValidos[j]] = [equiposValidos[j], equiposValidos[i]];
-  }
-
-  const partidos: Partido[] = [];
-  const inicioTimestamp = new Date(torneo.fechaInicio).getTime();
-  const finTimestamp = new Date(torneo.fechaFin).getTime();
-
-  for (let i = 0; i < equiposValidos.length; i += 2) {
-    const equipo1 = equiposValidos[i];
-    const equipo2 = equiposValidos[i + 1];
-
-    const fechaInicio = new Date(inicioTimestamp + Math.random() * (finTimestamp - inicioTimestamp));
-    const fechaFin = new Date(fechaInicio.getTime() + 90 * 60 * 1000);
-
-    const partido = this.partidoRepository.create({
-      fechaInicio,
-      fechaFin,
-      lugar: `Cancha ${i / 2 + 1}`,
-      duracion: '90 min',
-      estado: 'Pendiente',
-      torneo,
-      equipos: [equipo1, equipo2],
-      //No asignamos jornada todavía
-    });
-
-    partidos.push(partido);
-  }
-
-  //  Crear la jornada y asignarle los partidos
-  const jornada = this.jornadaRepository.create({
-    numero: numeroJornada,
-    torneo,
-    partidos, // Aquí asignamos todos los partidos
+    relations: ['jornadas', 'jornadas.partidos', 'jornadas.partidos.equipos'],
   });
 
-  await this.jornadaRepository.save(jornada); //  Se guardan la jornada y los partidos (cascade: true)
+  if (!torneo) throw new NotFoundException('Torneo no encontrado');
 
-  //  Retornar resultado
-  return {
-  mensaje: `Jornada ${numeroJornada} creada con ${partidos.length} partidos.`,
-  nombreTorneo: torneo.nombreTorneo,
-  partidos: partidos.map((p) => ({
-    equipos: p.equipos.map((e) => e.nombre),
-    lugar: p.lugar,
-    fechaInicio: p.fechaInicio.toLocaleString('es-MX', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }),
-  })),
-};
+  // 2️⃣ Obtener los equipos aprobados en este torneo
+  const inscripciones = await this.inscripcionRepository.find({
+    where: {
+      torneo: { idTorneo },
+      estado: EstadoInscripcion.APROBADO,
+    },
+    relations: ['equipo'],
+  });
 
+  const equipos = inscripciones.map((i) => i.equipo);
+
+  // 3️⃣ Calcular estadísticas de cada equipo
+  const leaderboard = equipos.map((equipo) => {
+    let victorias = 0;
+    let derrotas = 0;
+    let empates = 0;
+    let golesAFavor = 0;
+    let golesEnContra = 0;
+
+    // Revisar todos los partidos de las jornadas de este torneo
+    for (const jornada of torneo.jornadas) {
+      for (const partido of jornada.partidos) {
+        if (partido.estado !== 'Finalizado') continue;
+
+        const indice = partido.equipos.findIndex((e) => e.id === equipo.id);
+        if (indice === -1) continue; // este equipo no jugó este partido
+
+        const goles = indice === 0 ? partido.golesEquipo1 : partido.golesEquipo2;
+        const golesOponente = indice === 0 ? partido.golesEquipo2 : partido.golesEquipo1;
+
+        golesAFavor += goles;
+        golesEnContra += golesOponente;
+
+        if (goles > golesOponente) victorias += 1;
+        else if (goles < golesOponente) derrotas += 1;
+        else empates += 1;
+      }
+    }
+
+    const diferenciaGoles = golesAFavor - golesEnContra;
+    const puntos = victorias * 3 + empates;
+
+    return {
+      equipo: equipo.nombre,
+      victorias,
+      empates,
+      derrotas,
+      golesAFavor,
+      golesEnContra,
+      diferenciaGoles,
+      puntos,
+    };
+  });
+
+  // 4️⃣ Ordenar por puntos y diferencia de goles
+  leaderboard.sort((a, b) => {
+    if (b.puntos !== a.puntos) return b.puntos - a.puntos;
+    return b.diferenciaGoles - a.diferenciaGoles;
+  });
+
+  return leaderboard;
 }
 
 
 
+  async remove(id: string) {
+  const torneo = await this.torneoRepository.findOne({
+    where: { idTorneo: id },
+    relations: ['jornadas'],
+  });
 
-  findAll() {
-    return `This action returns all torneos`;
+  if (!torneo) {
+    throw new NotFoundException(`Torneo con id ${id} no encontrado`);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} torneo`;
+  try {
+    await this.torneoRepository.remove(torneo);
+    return { message: 'Torneo eliminado correctamente' };
+  } catch (error) {
+    this.logger.error('Error al eliminar el torneo', error.stack);
+    throw new InternalServerErrorException('No se pudo eliminar el torneo.');
   }
-
-  update(id: number, updateTorneoDto: UpdateTorneoDto) {
-    return `This action updates a #${id} torneo`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} torneo`;
-  }
-
-  private obtenerEquiposAleatorios(equipos: Equipo[]): [Equipo, Equipo] {
-    const copia = [...equipos];
-    const e1 = copia.splice(Math.floor(Math.random() * copia.length), 1)[0];
-    const e2 = copia.splice(Math.floor(Math.random() * copia.length), 1)[0];
-    return [e1, e2];
-  }
-
+}
 
   private controlDbErrores(error: any){
 
@@ -152,4 +203,18 @@ async generarPartidosAleatorios(idTorneo: string) {
     throw new InternalServerErrorException('AYUDA!')    
 
   }
+
+  async deleteAllTorneos() {
+  const query = this.torneoRepository.createQueryBuilder('torneo');
+
+  try {
+    return await query
+      .delete()
+      .where({})
+      .execute();
+  } catch (error) {
+    this.controlDbErrores(error);
+  }
+}
+
 }

@@ -24,19 +24,6 @@ export class AuthController {
     return this.authService.login(loginUserDto);
   }
 
- @Get('private3')
-  @Auth(ValidRoles.superUser)  
-  privateRoute3(
-    @GetUser() user: User     
-    ){
-      return{
-        ok: true,
-        user
-      }
-    } 
-
-
-
   @Get()
   findAll() {
     return this.authService.findAll();
@@ -44,16 +31,16 @@ export class AuthController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.authService.findOne(+id);
+    return this.authService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.authService.update(+id, updateUserDto);
+    return this.authService.update(id, updateUserDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.authService.remove(+id);
+    return this.authService.remove(id);
   }
 }

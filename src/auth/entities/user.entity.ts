@@ -8,7 +8,6 @@ export class User {
     id: string;
 
     @Column('text',{
-    unique: true
     })
     nombre: string;
 

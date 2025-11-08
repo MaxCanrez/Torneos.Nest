@@ -1,16 +1,12 @@
 import { IsNumber, IsOptional, IsPositive, IsString, IsUUID, MinLength } from "class-validator";
 
-export class CreateEquipoDto {
-
-  
-    
+export class CreateEquipoDto { 
     @IsString()
     @MinLength(4)
     nombre: string;
-  
-    @IsNumber()
-    @IsPositive()
-    noIntegrantes: number;
+
+    @IsOptional()
+    jugadores?: string[];
   
     @IsNumber()
     @IsOptional()
@@ -19,11 +15,6 @@ export class CreateEquipoDto {
     @IsNumber()
     @IsOptional()
     derrotas?: number;
-
-    @IsUUID()
-    idTorneo: string;
-
-
 }
 
 

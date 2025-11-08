@@ -12,19 +12,6 @@ export class TorneosController {
     return this.torneosService.create(createTorneoDto);
   }
 
-@Post(':id/generar-partidos')
-async generarPartidos(@Param('id', ParseUUIDPipe) idTorneo: string) {
-  const resultado = await this.torneosService.generarPartidosAleatorios(idTorneo);
-
-  return {
-    message: `Se generaron ${resultado.partidos.length} partidos para el torneo ${resultado.nombreTorneo}`,
-    ...resultado,
-  };
-}
-
-
-
-
   @Get()
   findAll() {
     return this.torneosService.findAll();
@@ -32,16 +19,25 @@ async generarPartidos(@Param('id', ParseUUIDPipe) idTorneo: string) {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.torneosService.findOne(+id);
+    return this.torneosService.findOne(id);
   }
+
+  @Get(':id/leaderboard')
+    async leaderboard(@Param('id') idTorneo: string) {
+    const tabla = await this.torneosService.obtenerLeaderboard(idTorneo);
+      return {
+        torneo: idTorneo,
+        leaderboard: tabla,
+      };
+    } 
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateTorneoDto: UpdateTorneoDto) {
-    return this.torneosService.update(+id, updateTorneoDto);
+    return this.torneosService.update(id, updateTorneoDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.torneosService.remove(+id);
+    return this.torneosService.remove(id);
   }
 }

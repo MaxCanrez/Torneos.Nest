@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsDate, IsString, MinLength } from "class-validator";
+import { IsDate, IsNumber, isNumber, IsOptional, IsPositive, isPositive, IsString, MinLength } from "class-validator";
 
 export class CreateTorneoDto {
 
@@ -22,6 +22,27 @@ export class CreateTorneoDto {
     @Type(() => Date)
     @IsDate()
     fechaInscripcionLimite: Date;    
+
+    @IsOptional()
+    descripcion?: string;
+
+    @IsOptional()
+    detalles?: string;
+
+    @IsString()
+    lugar?: string;
+
+    @IsNumber()
+    @IsPositive()
+    minJugadores: number;
+
+    @IsNumber()
+    @IsPositive()
+    maxJugadores: number;
+
+    @IsOptional()
+    reglas?: string;
+
 
 
 }

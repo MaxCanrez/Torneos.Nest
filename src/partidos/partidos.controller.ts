@@ -22,17 +22,9 @@ export class PartidosController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.partidosService.findOne(+id);
+    return this.partidosService.findOne(id);
   }
 
-  @Get(':id/leaderboard')
-  async leaderboard(@Param('id') idTorneo: string) {
-    const tabla = await this.partidosService.obtenerLeaderboard(idTorneo);
-    return {
-      torneo: idTorneo,
-      leaderboard: tabla,
-    };
-  }
 
   @Patch(':id/marcador')
   @Auth(ValidRoles.admin) // Solo admins pueden actualizar marcador
@@ -43,10 +35,17 @@ export class PartidosController {
     return this.partidosService.actualizarMarcador(id, actualizarMarcadorDto);
   }
 
+ 
+ 
+  @Patch(':id')
+   update(@Param('id') id: string, @Body() updatePartidoDto: UpdatePartidoDto) {
+     return this.partidosService.update(id, updatePartidoDto);
+  }
 
+  
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.partidosService.remove(+id);
+    return this.partidosService.remove(id);
   }
 }

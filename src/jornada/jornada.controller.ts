@@ -7,10 +7,16 @@ import { UpdateJornadaDto } from './dto/update-jornada.dto';
 export class JornadaController {
   constructor(private readonly jornadaService: JornadaService) {}
 
-  @Post()
+/*   @Post()
   create(@Body() createJornadaDto: CreateJornadaDto) {
     return this.jornadaService.create(createJornadaDto);
-  }
+  } */
+
+@Post()
+create(@Body() createJornadaDto: CreateJornadaDto) {
+  return this.jornadaService.generarJornada(createJornadaDto.idTorneo);
+}
+
 
   @Get()
   findAll() {
@@ -19,16 +25,16 @@ export class JornadaController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.jornadaService.findOne(+id);
+    return this.jornadaService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateJornadaDto: UpdateJornadaDto) {
-    return this.jornadaService.update(+id, updateJornadaDto);
+    return this.jornadaService.update(id, updateJornadaDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.jornadaService.remove(+id);
+    return this.jornadaService.remove(id);
   }
 }

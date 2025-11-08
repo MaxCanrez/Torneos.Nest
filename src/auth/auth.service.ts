@@ -15,7 +15,6 @@ import { LoginUserDto } from './dto/login-user.dto';
 
 @Injectable()
 export class AuthService {
-
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -75,21 +74,60 @@ export class AuthService {
   }
 
 
-  findAll() {
-    return `This action returns all auth`;
+  async findAll() {
+    try {
+      const users = await this.userRepository.find({
+        select: ['id', 'nombre', 'email', 'roles', 'isActive', 'expediente'] // Campos visibles
+      });
+      return users;
+    } catch (error) {
+      this.handleDbExceptions(error);
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
+  async findOne(id: string) {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      select: ['id', 'nombre', 'email', 'roles', 'isActive', 'expediente'],
+    });
+
+    if (!user) throw new BadRequestException(`Usuario con ID ${id} no encontrado`);
+
+    return user;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} auth`;
-  }
 
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+  async update(id: string, updateUserDto: UpdateUserDto) {
+  const user = await this.userRepository.preload({
+    id,
+    ...updateUserDto,
+  });
+
+  if (!user) throw new BadRequestException(`Usuario con ID ${id} no encontrado`);
+
+  try {
+    await this.userRepository.save(user);
+    // No devolver la contraseña
+    const { password, ...result } = user;
+    return result;
+  } catch (error) {
+    this.handleDbExceptions(error);
   }
+}
+
+
+  async remove(id: string) {
+  const user = await this.userRepository.findOneBy({ id });
+  if (!user) throw new BadRequestException(`Usuario con ID ${id} no encontrado`);
+
+  try {
+    await this.userRepository.remove(user);
+    return { mensaje: `Usuario ${user.nombre} eliminado correctamente` };
+  } catch (error) {
+    this.handleDbExceptions(error);
+  }
+}
+
 
   private getJwtToken(payload: JwtPayload){
 
@@ -109,4 +147,19 @@ export class AuthService {
     throw new InternalServerErrorException('please check server logs')    
 
   }
+
+  async deleteAllUsers() {
+  const query = this.userRepository.createQueryBuilder('user');
+
+  try {
+    return await query
+      .delete()
+      .where({})
+      .execute();
+  } catch (error) {
+    this.handleDbExceptions(error);
+  }
+}
+
+
 }

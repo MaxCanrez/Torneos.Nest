@@ -1,6 +1,6 @@
-import { Partido } from "src/partidos/entities/partido.entity";
-import { Jornada } from "src/jornada/entities/jornada.entity";
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Jornada } from "src/jornada/entities/jornada.entity";
+import { Inscripcion } from "src/inscripcion/entities/inscripcion.entity";
 
 @Entity()
 export class Torneo {
@@ -8,7 +8,7 @@ export class Torneo {
   @PrimaryGeneratedColumn('uuid')
   idTorneo: string;
 
-  @Column('text')
+  @Column('text', { unique: true })
   nombreTorneo: string;
 
   @Column('text')
@@ -20,15 +20,32 @@ export class Torneo {
   @Column({ type: 'date', nullable: true })
   fechaFin: Date;
 
-
- @Column({ type: 'date', nullable: true })
+  @Column({ type: 'date', nullable: true })
   fechaInscripcionLimite: Date;
 
-  @OneToMany(() => Jornada, (jornada) => jornada.torneo, {
-    cascade: true,
-  })
+  @Column('text')
+  descripcion: string;
+
+  @Column('text')
+  detalles: string;
+
+  @Column('text')
+  lugar: string;
+
+  @Column('int', { default: 0 })
+  minJugadores: number;
+
+  @Column('int', { default: 0 })
+  maxJugadores: number;
+
+  @Column('text')
+  reglas: string;
+
+  // Torneo ↔ Jornadas
+  @OneToMany(() => Jornada, (jornada) => jornada.torneo, { cascade: true })
   jornadas: Jornada[];
 
-  @OneToMany(() => Partido, (partido) => partido.torneo)
-  partidos: Partido[];
+  // Torneo ↔ Inscripciones
+  @OneToMany(() => Inscripcion, (inscripcion) => inscripcion.torneo)
+  inscripciones: Inscripcion[];
 }

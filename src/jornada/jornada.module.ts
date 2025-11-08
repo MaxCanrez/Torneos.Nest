@@ -5,12 +5,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Equipo } from 'src/equipos/entities/equipo.entity';
 import { Torneo } from 'src/torneos/entities/torneo.entity';
 import { Partido } from 'src/partidos/entities/partido.entity';
+import { Jornada } from './entities/jornada.entity';
+import { Inscripcion } from 'src/inscripcion/entities/inscripcion.entity';
 
 @Module({
   controllers: [JornadaController],
   providers: [JornadaService],
   imports: [
-    TypeOrmModule.forFeature([Partido, Torneo, Equipo,])
+    TypeOrmModule.forFeature([Partido, Torneo, Equipo, Jornada, Inscripcion])
   ]
 })
 export class JornadaModule {}

@@ -66,11 +66,12 @@ export class Partido {
   @JoinTable()
   equipos: Equipo[];
 
-  @ManyToOne(() => Torneo, (torneo) => torneo.partidos, { onDelete: 'CASCADE' })
-  torneo: Torneo;
+  @ManyToOne(() => Jornada, (jornada) => jornada.partidos, { 
+  onDelete: 'CASCADE',
+  nullable: true, // 🔹 Agrega esto
+  })
+  jornada: Jornada | null; // 🔹 Cambia el tipo
 
-  @ManyToOne(() => Jornada, (jornada) => jornada.partidos, { onDelete: 'CASCADE' })
-  jornada: Jornada;
 
   // Marcador de cada equipo
   @Column('int', { default: 0 })

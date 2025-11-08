@@ -7,6 +7,10 @@ import { AuthModule } from './auth/auth.module';
 import { PartidosModule } from './partidos/partidos.module';
 import { TorneosModule } from './torneos/torneos.module';
 import { JornadaModule } from './jornada/jornada.module';
+import { InscripcionModule } from './inscripcion/inscripcion.module';
+import { SeedModule } from './seed/seed.module';
+
+
 
 
 @Module({
@@ -36,6 +40,11 @@ import { JornadaModule } from './jornada/jornada.module';
     TorneosModule,
 
     JornadaModule,
+
+    InscripcionModule,
+
+    SeedModule,
+
 
 
   ],

@@ -1,13 +1,14 @@
 // src/equipos/dto/actualizar-equipo-capitan.dto.ts
-import { IsOptional, IsString, IsInt, Min } from 'class-validator';
+import { IsOptional, IsString, IsArray, ArrayNotEmpty } from 'class-validator';
+import { Type } from 'class-transformer';
 
-export class UpdateEquipoCapitanDto{
+export class UpdateEquipoCapitanDto {
   @IsOptional()
   @IsString()
   nombre?: string;
 
   @IsOptional()
-  @IsInt()
-  @Min(0)
-  noIntegrantes?: number;
+  @IsArray()
+  @IsString({ each: true })
+  jugadores?: string[];
 }

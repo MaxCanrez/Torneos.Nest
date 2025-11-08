@@ -1,7 +1,8 @@
 import { Partido } from "src/partidos/entities/partido.entity";
 import { User } from "src/auth/entities/user.entity";
 import { Torneo } from "src/torneos/entities/torneo.entity";
-import { Column, Entity, ManyToMany, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Inscripcion } from "src/inscripcion/entities/inscripcion.entity";
 
 @Entity()
 export class Equipo {
@@ -30,30 +31,34 @@ export class Equipo {
     derrotas: number;
 
     @Column('int', { default: 0 })
+    empates: number;
+
+    @Column('int', { default: 0 })
     golesAFavor: number;
 
     @Column('int', { default: 0 })
     golesEnContra: number;
-
-    @Column('int', { default: 0 })
-    empates: number;
-
+  
     @Column('int', { default: 0 })
     puntos: number;
 
+   @Column('text', {
+    array: true,
+    default: []
+   })
+   jugadores: string [];
 
+    @Column({ type: 'text', nullable: true })
+    logoUrl?: string; // Ruta o URL del logo del equipo
 
-    // 🔗 Relación muchos-a-muchos con Partidos
+    //  Relación muchos-a-muchos con Partidos
     @ManyToMany(() => Partido, (partido) => partido.equipos)
     partidos: Partido[];
 
-    // 🔗 Capitán del equipo
+    //  Capitán del equipo
     @ManyToOne(() => User, (user) => user.id, { eager: true })
     capitan: User;
 
-    // 🔗 Torneo al que pertenece el equipo
-    @ManyToOne(() => Torneo, (torneo) => torneo.idTorneo, { eager: true })
-    torneo: Torneo;
-
-
+    @OneToMany(() => Inscripcion, (inscripcion) => inscripcion.equipo)
+    inscripciones: Inscripcion[];
 }
