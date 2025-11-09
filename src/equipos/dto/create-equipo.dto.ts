@@ -15,6 +15,9 @@ export class CreateEquipoDto {
     @IsNumber()
     @IsOptional()
     derrotas?: number;
+
+    @IsOptional()
+    logoUrl?: string;
 }
 
 

@@ -1,6 +1,7 @@
 export interface SeedEquipo {
   nombre: string;
   jugadores: string[];
+  logoUrl: string;
 }
 
 export interface SeedTorneo {
@@ -32,26 +33,26 @@ export interface SeedData {
 
 export const initialData: SeedData = {
   equipos: [
-    { nombre: 'Hunters', jugadores: ['Samuel', 'Sebas', 'Isaac', 'Erick'] },
-    { nombre: 'Raptors', jugadores: ['Juan', 'Luis', 'Pedro', 'Miguel'] },
-    { nombre: 'Titans', jugadores: ['Ana', 'Carla', 'Sofía', 'Mónica'] },
-    { nombre: 'Warriors', jugadores: ['Diego', 'Fernando', 'Mario', 'Carlos'] },
-    { nombre: 'Gladiators', jugadores: ['Laura', 'Elena', 'Paula', 'Natalia'] },
-    { nombre: 'Vikings', jugadores: ['Hugo', 'Iván', 'Raúl', 'Tomás'] },
-    { nombre: 'Samurais', jugadores: ['Marta', 'Claudia', 'Lucía', 'Patricia'] },
-    { nombre: 'Dragons', jugadores: ['Andrés', 'Felipe', 'Raúl', 'Diego'] },
-    { nombre: 'Spartans', jugadores: ['Ricardo', 'Javier', 'Luis', 'Héctor'] },
-    { nombre: 'Phoenix', jugadores: ['Valeria', 'Camila', 'Sofía', 'Isabel'] },
-    { nombre: 'Sharks', jugadores: ['Mateo', 'Damián', 'Nicolás', 'Lucas'] },
-    { nombre: 'Tigers', jugadores: ['Diego', 'Sebastián', 'Jorge', 'Miguel'] },
-    { nombre: 'Falcons', jugadores: ['Fernando', 'Raúl', 'Andrés', 'Hugo'] },
-    { nombre: 'Bulls', jugadores: ['Carlos', 'Mario', 'Pedro', 'Luis'] },
-    { nombre: 'Eagles', jugadores: ['Laura', 'Ana', 'Paula', 'Claudia'] },
-    { nombre: 'Cobras', jugadores: ['Iván', 'Tomás', 'Diego', 'Ricardo'] },
-    { nombre: 'Panthers', jugadores: ['Mónica', 'Lucía', 'Natalia', 'Sofía'] },
-    { nombre: 'Ravens', jugadores: ['Javier', 'Héctor', 'Mateo', 'Damián'] },
-    { nombre: 'Wolves', jugadores: ['Nicolás', 'Lucas', 'Diego', 'Sebastián'] },
-    { nombre: 'Hornets', jugadores: ['Andrés', 'Carlos', 'Pedro', 'Miguel'] },
+    { nombre: 'Hunters', jugadores: ['Samuel', 'Sebas', 'Isaac', 'Erick'], logoUrl: "52ce63f4-582c-47c8-837a-b555da9b46a6-1762642022721.png"},
+    { nombre: 'Raptors', jugadores: ['Juan', 'Luis', 'Pedro', 'Miguel'], logoUrl: "ea3d3507-0703-421b-b207-80d3aa50529d-1762643935247.png" },
+    { nombre: 'Titans', jugadores: ['Ana', 'Carla', 'Sofía', 'Mónica'], logoUrl: "ee0cae23-2b3c-4cdd-8959-7e0719a661a7-1762643947849.png" },
+    { nombre: 'Warriors', jugadores: ['Diego', 'Fernando', 'Mario', 'Carlos'], logoUrl: "98193c01-6204-4a83-8520-7ea02b4a0a6b-1762643816780.png" },
+    { nombre: 'Gladiators', jugadores: ['Laura', 'Elena', 'Paula', 'Natalia'], logoUrl: "2595762b-1aef-4072-bceb-aeb4f4486ba2-1762643715914.png" },
+    { nombre: 'Vikings', jugadores: ['Hugo', 'Iván', 'Raúl', 'Tomás'], logoUrl: "b8e5a959-8344-47b5-9e5f-6a7e867d65e1-1762643839524.jpg" },
+    { nombre: 'Samurais', jugadores: ['Marta', 'Claudia', 'Lucía', 'Patricia'], logoUrl: "d4a8489e-dc73-48d7-8de1-d3e710d8b0d6-1762643878337.png" },
+    { nombre: 'Dragons', jugadores: ['Andrés', 'Felipe', 'Raúl', 'Diego'], logoUrl: "9c43fbee-61c1-44a5-b592-50b4d027626a-1762643827127.png" },
+    { nombre: 'Spartans', jugadores: ['Ricardo', 'Javier', 'Luis', 'Héctor'], logoUrl: "c6b037d4-8978-4aa4-87e3-e8194c5b0154-1762643866607.png" },
+    { nombre: 'Phoenix', jugadores: ['Valeria', 'Camila', 'Sofía', 'Isabel'], logoUrl: "c2ae1b07-0b20-400c-8e4b-a22c359065a6-1762643854011.png" },
+    { nombre: 'Sharks', jugadores: ['Mateo', 'Damián', 'Nicolás', 'Lucas'], logoUrl: "6ed0fd18-ea81-40ce-af89-7de846b98bd9-1762643758823.png" },
+    { nombre: 'Tigers', jugadores: ['Diego', 'Sebastián', 'Jorge', 'Miguel'], logoUrl: "68e869b7-f530-49b4-a7dd-fb9f4c1594f4-1762643744283.png" },
+    { nombre: 'Falcons', jugadores: ['Fernando', 'Raúl', 'Andrés', 'Hugo'], logoUrl: "0c5f020a-7d55-49bc-bf36-f8727d46627d-1762643093746.png" },
+    { nombre: 'Bulls', jugadores: ['Carlos', 'Mario', 'Pedro', 'Luis'], logoUrl: "549fd8eb-6e19-4573-a081-c6a4f0c5d858-1762643729614.png" },
+    { nombre: 'Eagles', jugadores: ['Laura', 'Ana', 'Paula', 'Claudia'], logoUrl: "e5256d36-4a6a-4e80-8397-6a4a72c6f694-1762643901963.png" },
+    { nombre: 'Cobras', jugadores: ['Iván', 'Tomás', 'Diego', 'Ricardo'], logoUrl: "787d95cf-1538-4cb6-8cc8-99098b8c5e37-1762643794450.png" },
+    { nombre: 'Panthers', jugadores: ['Mónica', 'Lucía', 'Natalia', 'Sofía'], logoUrl: "777a4f8b-81a9-447e-8d07-61760bbfd0f0-1762643772025.png" },
+    { nombre: 'Ravens', jugadores: ['Javier', 'Héctor', 'Mateo', 'Damián'], logoUrl: "dfb783f0-582f-4a28-aec0-909d2a920d9b-1762643891199.png" },
+    { nombre: 'Wolves', jugadores: ['Nicolás', 'Lucas', 'Diego', 'Sebastián'], logoUrl: "8a1ed2ca-55df-4988-a553-cf8c89056326-1762643805926.png" },
+    { nombre: 'Hornets', jugadores: ['Andrés', 'Carlos', 'Pedro', 'Miguel'], logoUrl: "e6a0e147-80c6-4e36-b6a8-3d775bb9a0f9-1762643921152.png" },
   ],
   torneos: [
     {

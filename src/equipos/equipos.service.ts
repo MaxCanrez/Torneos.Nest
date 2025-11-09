@@ -46,6 +46,7 @@ async create(createEquipoDto: CreateEquipoDto, usuario: User) {
     jugadores: jugadoresFinal,
     noIntegrantes: jugadoresFinal.length,
     capitan: usuario,
+    logoUrl: createEquipoDto.logoUrl,
   });
 
   await this.equipoRepository.save(equipo);
