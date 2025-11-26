@@ -9,6 +9,7 @@ import { TorneosModule } from './torneos/torneos.module';
 import { JornadaModule } from './jornada/jornada.module';
 import { InscripcionModule } from './inscripcion/inscripcion.module';
 import { SeedModule } from './seed/seed.module';
+import { AvisosModule } from './avisos/avisos.module';
 
 
 
@@ -45,7 +46,7 @@ import { SeedModule } from './seed/seed.module';
 
     SeedModule,
 
-
+    AvisosModule
 
   ],
   controllers: [],

@@ -1,3 +1,5 @@
+// src-backend/torneos/torneos.service.ts
+
 import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { CreateTorneoDto } from './dto/create-torneo.dto';
 import { UpdateTorneoDto } from './dto/update-torneo.dto';
@@ -14,7 +16,6 @@ export class TorneosService {
   private readonly logger = new Logger('TorneosService');
 
   constructor(
-
     @InjectRepository(Torneo)
     private readonly torneoRepository: Repository<Torneo>,
     @InjectRepository(Partido)
@@ -25,20 +26,15 @@ export class TorneosService {
     private readonly jornadaRepository: Repository<Jornada>,
     @InjectRepository(Inscripcion)
     private readonly inscripcionRepository: Repository<Inscripcion>,
-
   ){}
 
  async create(createTorneoDto: CreateTorneoDto) {
-    
       try {
         const torneo = this.torneoRepository.create(createTorneoDto)
         await this.torneoRepository.save(torneo)
-        
         return torneo;
-        
       } catch (error) {
         this.controlDbErrores(error)
-        
       }  
   }
 
@@ -51,10 +47,6 @@ export class TorneosService {
       .leftJoinAndSelect('torneo.inscripciones', 'inscripcion')
       .orderBy('torneo.nombreTorneo', 'ASC')
       .getMany();
-
-    if (!torneos.length) {
-      this.logger.warn('No se encontraron torneos en la base de datos.');
-    }
 
     return torneos;
   } catch (error) {
@@ -83,7 +75,6 @@ export class TorneosService {
 }
 
   async update(id: string, updateTorneoDto: UpdateTorneoDto) {
-  // Cargar el torneo existente
   const torneo = await this.torneoRepository.preload({
     idTorneo: id,
     ...updateTorneoDto,
@@ -101,7 +92,7 @@ export class TorneosService {
 }
 
 async obtenerLeaderboard(idTorneo: string) {
-  // 1️⃣ Verificar que el torneo existe
+  // 1. Verificar torneo
   const torneo = await this.torneoRepository.findOne({
     where: { idTorneo },
     relations: ['jornadas', 'jornadas.partidos', 'jornadas.partidos.equipos'],
@@ -109,7 +100,7 @@ async obtenerLeaderboard(idTorneo: string) {
 
   if (!torneo) throw new NotFoundException('Torneo no encontrado');
 
-  // 2️⃣ Obtener los equipos aprobados en este torneo
+  // 2. Obtener equipos inscritos
   const inscripciones = await this.inscripcionRepository.find({
     where: {
       torneo: { idTorneo },
@@ -120,7 +111,8 @@ async obtenerLeaderboard(idTorneo: string) {
 
   const equipos = inscripciones.map((i) => i.equipo);
 
-  // 3️⃣ Calcular estadísticas de cada equipo
+  // 3. Calcular estadísticas EN VIVO
+  // Esto es mejor que leer de la tabla Equipo, porque aísla los puntos por torneo
   const leaderboard = equipos.map((equipo) => {
     let victorias = 0;
     let derrotas = 0;
@@ -128,23 +120,30 @@ async obtenerLeaderboard(idTorneo: string) {
     let golesAFavor = 0;
     let golesEnContra = 0;
 
-    // Revisar todos los partidos de las jornadas de este torneo
     for (const jornada of torneo.jornadas) {
       for (const partido of jornada.partidos) {
-        if (partido.estado !== 'Finalizado') continue;
+        // CORRECCIÓN CRÍTICA: Comparación insensible a mayúsculas/minúsculas
+        if (!partido.estado || partido.estado.toUpperCase() !== 'FINALIZADO') continue;
 
-        const indice = partido.equipos.findIndex((e) => e.id === equipo.id);
-        if (indice === -1) continue; // este equipo no jugó este partido
+        // Verificar integridad de datos
+        if (!partido.equipos || partido.equipos.length < 2) continue;
 
-        const goles = indice === 0 ? partido.golesEquipo1 : partido.golesEquipo2;
-        const golesOponente = indice === 0 ? partido.golesEquipo2 : partido.golesEquipo1;
+        // Encontrar si el equipo jugó este partido
+        // IMPORTANTE: Usamos findIndex con ID para ser precisos
+        const miIndice = partido.equipos.findIndex((e) => e.id === equipo.id);
+        
+        if (miIndice === -1) continue; // No jugó este partido
 
-        golesAFavor += goles;
-        golesEnContra += golesOponente;
+        // Determinar goles
+        const misGoles = miIndice === 0 ? partido.golesEquipo1 : partido.golesEquipo2;
+        const rivalGoles = miIndice === 0 ? partido.golesEquipo2 : partido.golesEquipo1;
 
-        if (goles > golesOponente) victorias += 1;
-        else if (goles < golesOponente) derrotas += 1;
-        else empates += 1;
+        golesAFavor += misGoles;
+        golesEnContra += rivalGoles;
+
+        if (misGoles > rivalGoles) victorias++;
+        else if (misGoles < rivalGoles) derrotas++;
+        else empates++;
       }
     }
 
@@ -163,16 +162,15 @@ async obtenerLeaderboard(idTorneo: string) {
     };
   });
 
-  // 4️⃣ Ordenar por puntos y diferencia de goles
+  // 4. Ordenar: Puntos > Diferencia de Goles > Goles a Favor
   leaderboard.sort((a, b) => {
     if (b.puntos !== a.puntos) return b.puntos - a.puntos;
-    return b.diferenciaGoles - a.diferenciaGoles;
+    if (b.diferenciaGoles !== a.diferenciaGoles) return b.diferenciaGoles - a.diferenciaGoles;
+    return b.golesAFavor - a.golesAFavor;
   });
 
   return leaderboard;
 }
-
-
 
   async remove(id: string) {
   const torneo = await this.torneoRepository.findOne({
@@ -194,27 +192,18 @@ async obtenerLeaderboard(idTorneo: string) {
 }
 
   private controlDbErrores(error: any){
-
     if (error.code === '23505') 
         throw new BadRequestException(error.detail);
-
     this.logger.error(error)
-    
-    throw new InternalServerErrorException('AYUDA!')    
-
+    throw new InternalServerErrorException('Error inesperado en base de datos')    
   }
 
   async deleteAllTorneos() {
-  const query = this.torneoRepository.createQueryBuilder('torneo');
-
-  try {
-    return await query
-      .delete()
-      .where({})
-      .execute();
-  } catch (error) {
-    this.controlDbErrores(error);
+    const query = this.torneoRepository.createQueryBuilder('torneo');
+    try {
+      return await query.delete().where({}).execute();
+    } catch (error) {
+      this.controlDbErrores(error);
+    }
   }
-}
-
 }

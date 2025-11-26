@@ -1,3 +1,5 @@
+// src-backend/partidos/partidos.controller.ts
+
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { PartidosService } from './partidos.service';
 import { CreatePartidoDto } from './dto/create-partido.dto';
@@ -11,6 +13,7 @@ export class PartidosController {
   constructor(private readonly partidosService: PartidosService) {}
 
   @Post()
+  @Auth(ValidRoles.admin) // Solo admin crea partidos
   create(@Body() createPartidoDto: CreatePartidoDto) {
     return this.partidosService.create(createPartidoDto);
   }
@@ -25,9 +28,9 @@ export class PartidosController {
     return this.partidosService.findOne(id);
   }
 
-
   @Patch(':id/marcador')
-  @Auth(ValidRoles.admin) // Solo admins pueden actualizar marcador
+  // CORRECCIÓN CRÍTICA: Agregamos ValidRoles.arbitro para permitirles guardar resultados
+  @Auth(ValidRoles.admin, ValidRoles.arbitro) 
   async actualizarMarcador(
     @Param('id') id: string,
     @Body() actualizarMarcadorDto: ActualizarMarcadorDto,
@@ -35,16 +38,14 @@ export class PartidosController {
     return this.partidosService.actualizarMarcador(id, actualizarMarcadorDto);
   }
 
- 
- 
   @Patch(':id')
-   update(@Param('id') id: string, @Body() updatePartidoDto: UpdatePartidoDto) {
+  @Auth(ValidRoles.admin) // Editar fecha/lugar solo admin
+  update(@Param('id') id: string, @Body() updatePartidoDto: UpdatePartidoDto) {
      return this.partidosService.update(id, updatePartidoDto);
   }
 
-  
-
   @Delete(':id')
+  @Auth(ValidRoles.admin)
   remove(@Param('id') id: string) {
     return this.partidosService.remove(id);
   }
